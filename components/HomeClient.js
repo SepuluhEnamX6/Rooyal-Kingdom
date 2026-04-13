@@ -11,10 +11,10 @@ export default function HomeClient({ members, gallery }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [clickCount, setClickCount] = useState(0);
+  const [autoPlay, setAutoPlay] = useState(true);
   const trackRef = useRef(null);
   const itemRefs = useRef([]);
 
-  // ===== INTRO =====
   useEffect(() => {
     document.body.classList.add('no-scroll');
     window.scrollTo(0, 0);
@@ -29,14 +29,12 @@ export default function HomeClient({ members, gallery }) {
     return () => clearTimeout(timer1);
   }, []);
 
-  // ===== NAVBAR SCROLL =====
   useEffect(() => {
     const handleScroll = () => setNavVisible(window.scrollY > 60);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // ===== GALLERY =====
   useEffect(() => { updateGallery(); }, [galleryIndex, gallery]);
 
   function updateGallery() {
@@ -59,7 +57,14 @@ export default function HomeClient({ members, gallery }) {
   function nextSlide() { setGalleryIndex(i => (i + 1) % gallery.length); }
   function prevSlide() { setGalleryIndex(i => (i - 1 + gallery.length) % gallery.length); }
 
-  // ===== KLIK LOGO 5X → ADMIN =====
+  useEffect(() => {
+    if (!autoPlay || !gallery.length) return;
+    const interval = setInterval(() => {
+      setGalleryIndex(i => (i + 1) % gallery.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [autoPlay, gallery.length]);
+
   function handleLogoClick() {
     setClickCount(prev => {
       const next = prev + 1;
@@ -68,7 +73,6 @@ export default function HomeClient({ members, gallery }) {
     });
   }
 
-  // ===== SCROLL REVEAL =====
   useEffect(() => {
     const reveals = document.querySelectorAll('.reveal');
     function revealOnScroll() {
@@ -84,7 +88,6 @@ export default function HomeClient({ members, gallery }) {
 
   return (
     <>
-      {/* ===== INTRO ===== */}
       {introVisible && (
         <div id="intro">
           <img src="/logo/logo-tanpa-bg.png" className="intro-logo" alt="Logo" />
@@ -94,15 +97,8 @@ export default function HomeClient({ members, gallery }) {
       )}
 
       <div id="main">
-        {/* ===== NAVBAR ===== */}
         <nav className={`navbar ${navVisible ? 'show' : ''}`}>
-          <img
-            src="/logo/logo-tanpa-bg.png"
-            className="nav-logo"
-            alt="Logo"
-            onClick={handleLogoClick}
-            style={{ cursor: 'pointer' }}
-          />
+          <img src="/logo/logo-tanpa-bg.png" className="nav-logo" alt="Logo" onClick={handleLogoClick} style={{ cursor: 'pointer' }} />
           <button className="hamburger" onClick={() => setMenuOpen(o => !o)}>
             {menuOpen ? '✕' : '☰'}
           </button>
@@ -114,20 +110,16 @@ export default function HomeClient({ members, gallery }) {
           </ul>
         </nav>
 
-        {/* ===== HERO ===== */}
         <section className="hero-bg">
           <div className="hero-content">
             <p className="hero-eyebrow reveal">Est. 2024</p>
             <div className="hero-divider reveal" />
-            <h1 className="reveal">
-              Royal <span>Kingdom</span>
-            </h1>
+            <h1 className="reveal">Royal <span>Kingdom</span></h1>
             <div className="hero-divider reveal" />
             <p className="hero-tagline reveal">8 Souls · 1 Kingdom · Forever</p>
           </div>
         </section>
 
-        {/* ===== GALLERY ===== */}
         <section className="gallery-section" id="galery">
           <div className="gallery-header">
             <p className="section-label reveal">Memories</p>
@@ -135,24 +127,23 @@ export default function HomeClient({ members, gallery }) {
             <p className="section-sub reveal">Every picture tells a story, captured in time.</p>
           </div>
           <div className="gallery-container">
-            <button className="nav-btn left" onClick={prevSlide}>‹</button>
+            <button className="nav-btn left" onClick={() => { prevSlide(); setAutoPlay(false); }} onMouseEnter={() => setAutoPlay(false)} onMouseLeave={() => setAutoPlay(true)}>‹</button>
             <div className="gallery-track" ref={trackRef}>
               {gallery.map((item, i) => (
-                <div
-                  key={item.id}
-                  className={`gallery-item ${i === galleryIndex ? 'active' : ''}`}
-                  ref={el => (itemRefs.current[i] = el)}
-                  onClick={() => setGalleryIndex(i)}
-                >
+                <div key={item.id} className={`gallery-item ${i === galleryIndex ? 'active' : ''}`} ref={el => (itemRefs.current[i] = el)} onClick={() => { setGalleryIndex(i); setAutoPlay(false); setTimeout(() => setAutoPlay(true), 5000); }}>
                   <img src={item.imageUrl} alt={item.caption || `Gallery ${i + 1}`} />
                 </div>
               ))}
             </div>
-            <button className="nav-btn right" onClick={nextSlide}>›</button>
+            <button className="nav-btn right" onClick={() => { nextSlide(); setAutoPlay(false); }} onMouseEnter={() => setAutoPlay(false)} onMouseLeave={() => setAutoPlay(true)}>›</button>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '24px' }}>
+            {gallery.map((_, i) => (
+              <div key={i} onClick={() => { setGalleryIndex(i); setAutoPlay(false); setTimeout(() => setAutoPlay(true), 5000); }} style={{ width: i === galleryIndex ? '20px' : '6px', height: '6px', borderRadius: '3px', background: i === galleryIndex ? '#d4a843' : 'rgba(212,168,67,0.3)', cursor: 'pointer', transition: 'all 0.4s ease' }} />
+            ))}
           </div>
         </section>
 
-        {/* ===== FAMILY ===== */}
         <section className="family-section" id="keluarga">
           <div className="family-header">
             <p className="section-label reveal">The Members</p>
@@ -161,29 +152,16 @@ export default function HomeClient({ members, gallery }) {
           </div>
           <div className="family-container">
             {members.map((member, i) => (
-              <div
-                key={member.id}
-                className={`family-card reveal ${i % 2 === 0 ? 'reveal-left' : 'reveal-right'}`}
-                style={{ transitionDelay: `${(i % 4) * 0.08}s` }}
-              >
+              <div key={member.id} className={`family-card reveal ${i % 2 === 0 ? 'reveal-left' : 'reveal-right'}`} style={{ transitionDelay: `${(i % 4) * 0.08}s` }}>
                 <img src={member.photo} alt={member.name} className="family-card-img" />
                 <div className="family-card-body">
                   <h3>{member.name}</h3>
                   <span className="role">{member.role}</span>
                   <div className="btn-group">
                     {member.instagram ? (
-                      <a
-                        href={`https://www.instagram.com/${member.instagram}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-gold"
-                      >
-                        Instagram
-                      </a>
+                      <a href={`https://www.instagram.com/${member.instagram}`} target="_blank" rel="noopener noreferrer" className="btn-gold">Instagram</a>
                     ) : (
-                      <button className="btn-gold" disabled style={{ opacity: 0.3, cursor: 'not-allowed' }}>
-                        Instagram
-                      </button>
+                      <button className="btn-gold" disabled style={{ opacity: 0.3, cursor: 'not-allowed' }}>Instagram</button>
                     )}
                   </div>
                 </div>
@@ -192,7 +170,6 @@ export default function HomeClient({ members, gallery }) {
           </div>
         </section>
 
-        {/* ===== MUSIK ===== */}
         <section className="music-section" id="musik">
           <div className="music-header">
             <p className="section-label reveal">Listen</p>
@@ -200,19 +177,10 @@ export default function HomeClient({ members, gallery }) {
             <p className="section-sub reveal">The official Royal Kingdom Spotify vibes.</p>
           </div>
           <div className="spotify-box reveal">
-            <iframe
-              style={{ borderRadius: '0', display: 'block' }}
-              src="https://open.spotify.com/embed/playlist/1L0rjfRaHrYftsc6wQvamZ"
-              width="100%"
-              height="352"
-              frameBorder="0"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
-            />
+            <iframe style={{ borderRadius: '0', display: 'block' }} src="https://open.spotify.com/embed/playlist/1L0rjfRaHrYftsc6wQvamZ" width="100%" height="352" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" />
           </div>
         </section>
 
-        {/* ===== FOOTER ===== */}
         <footer className="footer-gold">
           <img src="/logo/logo-tanpa-bg.png" className="footer-logo" alt="Logo" />
           <p className="footer-title">Royal Kingdom</p>
